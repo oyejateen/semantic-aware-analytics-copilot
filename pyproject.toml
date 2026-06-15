@@ -1,0 +1,15 @@
+[project]
+name = "my-rag-data-copilot-v1"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain>=1.3.9",
+    "streamlit>=1.58.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.17",
+]

@@ -1,0 +1,35 @@
+name: CI Setup Check
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Check out the code from the repo
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. Setup uv instantly
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    # 3. Ensure the correct Python version from your pyproject.toml is used
+    - name: Set up Python
+      run: uv python install
+
+    # 4. Try to sync the environment.
+    - name: Install Dependencies
+      run: uv sync
+
+    # 5. Basic Syntax/Lint Check
+    - name: Run Ruff Linter
+      run: uv run ruff check .
+      continue-on-error: false
