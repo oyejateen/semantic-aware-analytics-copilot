@@ -11,4 +11,4 @@ st.write(f"LangChain version: {lc.__version__}")
 query = st.text_input("Enter a question")
 
 if query:
-	st.info(f"You entered: {query}")
+    st.info(f"You entered: {query}")
