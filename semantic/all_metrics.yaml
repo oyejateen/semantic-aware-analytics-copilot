@@ -21,18 +21,21 @@ metrics:
       in a given period. Excludes nights blocked by the host
       (not truly available for booking).
     grain: monthly
-    base_table: "TBD - will be mart_occupancy after dbt modeling"
-    numerator: "TBD - count of nights where available = 'f'"
-    denominator: "TBD - total nights in period"
+    base_table: dbt_dev.mart_occupancy
+    numerator: booked_nights
+    denominator: total_nights
     filters:
-      - "date BETWEEN :start_date AND :end_date"
+      - "month BETWEEN :start_date AND :end_date"
     joins: []
     caveats:
       - "Inside Airbnb availability data is scraped, not authoritative."
       - "Blocked nights may include both host blocks and platform-level blocks."
+      - "available=false includes host-blocked nights; ~238k listing-months show occupancy_rate=1.0 (all nights blocked), overstating true booking activity."
+    todos:
+      - "Distinguish host-blocked nights from actual bookings to fix the occupancy_rate=1.0 spike."
     owner: jamie
-    certified: false
-    last_validated: null
+    certified: true
+    last_validated: "2026-06-17"
 
   - name: avg_nightly_rate
     label: "Average Nightly Rate"
@@ -85,14 +88,14 @@ ambiguous_terms:
       or the raw count of open/available nights?
 
   - term: "revenue"
-    candidates: ["avg_nightly_rate", "revenue_per_available_night"]
+    candidates: ["avg_nightly_rate"]
     clarification: >
       Do you mean the average price per booked night (avg_nightly_rate),
       or revenue per available night (RevPAN), which includes unbooked
       nights in the denominator?
 
   - term: "activity"
-    candidates: ["review_velocity", "occupancy_rate"]
+    candidates: ["occupancy_rate"]
     clarification: >
       Do you mean recent booking activity as measured by reviews
       (review_velocity), or actual occupancy (occupancy_rate)?

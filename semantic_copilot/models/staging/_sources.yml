@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: airbnb_nyc_raw
+    database: semantic-aware-copilot
+    schema: airbnb_nyc_raw
+    tables:
+      - name: listings
+      - name: calender
+      - name: reviews
