@@ -11,3 +11,15 @@ wheels/
 .venv
 .steamlit
 .langchain
+venv/
+
+# Local logs / artifacts
+logs/
+dbt.log
+
+# dbt artifacts
+target/
+dbt_packages/
+
+# OS files
+.DS_Store
