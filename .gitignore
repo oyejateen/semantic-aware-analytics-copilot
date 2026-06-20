@@ -23,3 +23,6 @@ dbt_packages/
 
 # OS files
 .DS_Store
+
+# EDA documents - will be updated
+/docs
