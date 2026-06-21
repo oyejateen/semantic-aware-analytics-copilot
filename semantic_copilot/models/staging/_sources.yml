@@ -1,0 +1,85 @@
+version: 2
+
+sources:
+  - name: airbnb_nyc_raw
+    database: semantic-aware-copilot
+    schema: airbnb_nyc_raw
+    description: Raw Airbnb NYC source tables loaded into BigQuery.
+
+    tables:
+      - name: listings
+        description: Raw listing-level attributes table. Expected grain is one row per listing.
+        columns:
+          - name: id
+            description: Primary listing identifier.
+            data_tests:
+              - not_null
+              - unique
+
+          - name: price
+            description: Listing-level price as a numeric value. Used for average listing price metrics.
+
+          - name: price_quote_price_per_night
+            description: Quoted nightly price, if available. May be used as an alternative to listing-level price.
+
+          - name: room_type
+            description: Room type dimension.
+
+          - name: property_type
+            description: Property type dimension.
+
+          - name: neighbourhood_cleansed
+            description: Cleaned neighbourhood dimension.
+
+          - name: neighbourhood_group_cleansed
+            description: Cleaned neighbourhood group dimension.
+
+          - name: latitude
+            description: Listing latitude.
+
+          - name: longitude
+            description: Listing longitude.
+
+          - name: availability_365
+            description: Number of available days in the next 365 days, as provided by the source.
+
+          - name: number_of_reviews
+            description: Total number of reviews associated with the listing.
+
+          - name: reviews_per_month
+            description: Source-provided reviews per month metric.
+
+      - name: calender
+        description: Raw listing-date availability table. Raw table name is misspelled as `calender`; staging standardizes this as `stg_calendar`.
+        columns:
+          - name: listing_id
+            description: Listing identifier. Joins to `listings.id`.
+            data_tests:
+              - not_null
+
+          - name: date
+            description: Calendar date for the listing availability record.
+            data_tests:
+              - not_null
+
+          - name: available
+            description: Boolean availability flag. `false` is treated as booked or unavailable for occupancy calculations.
+
+          - name: minimum_nights
+            description: Minimum nights required for the listing on the calendar date.
+
+          - name: maximum_nights
+            description: Maximum nights allowed for the listing on the calendar date.
+
+      - name: reviews
+        description: Raw review activity table. Expected grain is one row per review event, with listing and review date.
+        columns:
+          - name: listing_id
+            description: Listing identifier. Joins to `listings.id`.
+            data_tests:
+              - not_null
+
+          - name: date
+            description: Review date. Used for review velocity metrics.
+            data_tests:
+              - not_null

@@ -21,59 +21,69 @@ metrics:
       in a given period. Excludes nights blocked by the host
       (not truly available for booking).
     grain: monthly
-    base_table: "TBD - will be mart_occupancy after dbt modeling"
-    numerator: "TBD - count of nights where available = 'f'"
-    denominator: "TBD - total nights in period"
+    base_table: dbt_dev.mart_occupancy
+    numerator: booked_nights
+    denominator: total_nights
     filters:
-      - "date BETWEEN :start_date AND :end_date"
+      - "month BETWEEN :start_date AND :end_date"
     joins: []
     caveats:
       - "Inside Airbnb availability data is scraped, not authoritative."
       - "Blocked nights may include both host blocks and platform-level blocks."
+      - "available=false includes host-blocked nights; ~238k listing-months show occupancy_rate=1.0 (all nights blocked), overstating true booking activity."
+    todos:
+      - "Distinguish host-blocked nights from actual bookings to fix the occupancy_rate=1.0 spike."
     owner: jamie
-    certified: false
-    last_validated: null
+    certified: true
+    last_validated: "2026-06-17"
 
-  - name: avg_nightly_rate
-    label: "Average Nightly Rate"
+  - name: avg_listing_price
+    label: "Average Listing Price"
     description: >
-      Average price per booked night for a listing or group of listings
-      in a given period. Excludes nights that were unavailable/blocked,
-      since those don't reflect an actual transaction price.
-    grain: monthly
-    base_table: "TBD - will be mart_revenue after dbt modeling"
-    numerator: "TBD - sum of price for nights where available = 'f'"
-    denominator: "TBD - count of nights where available = 'f'"
+      Average listing-level posted price for a listing or group of listings.
+      This uses price fields from the listings table, not date-level calendar
+      prices or actual booked transaction prices.
+    grain: listing
+    base_table: dbt_dev.mart_listing_pricing
+    numerator: "sum(listing_price)"
+    denominator: "count(listing_id)"
     filters:
-      - "date BETWEEN :start_date AND :end_date"
+      - "listing_price IS NOT NULL"
     joins: []
     caveats:
-      - "Price values from Inside Airbnb calendar are scraped daily; may not reflect final transaction price (cleaning fees, discounts not included)."
+      - "This is a listing-level posted price, not an actual booked transaction price."
+      - "The raw calendar table does not include nightly price, so this metric cannot represent date-level booked nightly rate."
+      - "Price may not include cleaning fees, discounts, taxes, or platform fees."
       - "Currency assumed USD."
+    todos:
+      - "Validate whether listing_price or price_quote_price_per_night should be the certified pricing source."
     owner: jamie
-    certified: false
-    last_validated: null
+    certified: true
+    last_validated: "2026-06-20"
 
   - name: review_velocity
     label: "Review Velocity"
     description: >
-      Number of reviews received in a trailing 30-day window for a
-      listing or group of listings. Used as a proxy signal for recent
-      booking activity, since not all bookings result in a review.
-    grain: trailing_30_day
-    base_table: "TBD - will be mart_reviews after dbt modeling"
-    numerator: "TBD - count of reviews where date BETWEEN (today - 30 days) AND today"
+      Number of reviews received per listing or group of listings over time.
+      Used as a proxy signal for recent booking activity, since not all bookings result in a review.
+    grain: monthly
+    base_table: dbt_dev.mart_review_velocity
+    numerator: review_count
     denominator: null
     filters:
-      - "review_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)"
+      - "review_month BETWEEN :start_month AND :end_month"
     joins:
-      - "TBD - join path reviews -> listings (for neighbourhood/room_type breakdowns)"
+      - "mart_review_velocity joins reviews to listings through listing_id for neighbourhood, property_type, and room_type breakdowns."
     caveats:
-      - "Review velocity is a proxy for booking activity, not a direct measure. Not all guests leave reviews."
-      - "Subject to review posting delays (guests often review after checkout)."
+      - "Review velocity is a proxy for booking activity, not a direct measure of bookings."
+      - "Not all guests leave reviews."
+      - "Reviews are lagging signals and may be posted after checkout."
+      - "Raw reviews data only includes listing_id and date, so review text, reviewer id, and review id are not available in v1."
+    todos:
+      - "Decide whether certified grain should be listing-month, neighbourhood-month, or overall month."
     owner: jamie
-    certified: false
-    last_validated: null
+    certified: true
+    last_validated: "2026-06-20"
 
 
 ambiguous_terms:
@@ -81,18 +91,21 @@ ambiguous_terms:
   - term: "availability"
     candidates: ["occupancy_rate"]
     clarification: >
-      Do you mean the percentage of nights booked (occupancy rate),
-      or the raw count of open/available nights?
+      Do you mean the percentage of nights booked (occupancy rate), or the raw count of open/available nights?
 
   - term: "revenue"
-    candidates: ["avg_nightly_rate", "revenue_per_available_night"]
+    candidates: ["avg_listing_price"]
     clarification: >
-      Do you mean the average price per booked night (avg_nightly_rate),
-      or revenue per available night (RevPAN), which includes unbooked
-      nights in the denominator?
+      Do you mean average posted listing price, or actual booked revenue?]
+      Current raw data supports listing-level price, but not true transaction revenue.
 
   - term: "activity"
-    candidates: ["review_velocity", "occupancy_rate"]
+    candidates: ["occupancy_rate", "review_velocity"]
     clarification: >
-      Do you mean recent booking activity as measured by reviews
-      (review_velocity), or actual occupancy (occupancy_rate)?
+      Do you mean recent booking activity as proxied by reviews (review_velocity), or occupancy based on calendar availability (occupancy_rate)?
+
+  - term: "price"
+    candidates: ["avg_listing_price"]
+    clarification: >
+      Do you mean listing-level posted price, quoted nightly price, or actual booked transaction price? Current certified metric supports listing-level posted price.
+
